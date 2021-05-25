@@ -7,15 +7,10 @@ from datetime import datetime as dt
 
 
 REGION = os.environ['AWS_REGION']
-LOG_LEVEL = os.environ['LOG_LEVEL']
 ANNOUNCEMENT_TABLE_NAME = os.environ['ANNOUNCEMENT_TABLE_NAME']
 
 
 log = logging.getLogger(__name__)
-
-
-class ValidationError(Exception):
-    pass
 
 
 class Database:
@@ -44,19 +39,10 @@ class Database:
         return self.table.delete_item(Key=key)
 
 
-def validate_fields(request):
-    if 'title' not in request:
-        raise ValidationError("missing 'title'")
-    if 'description' not in request:
-        raise ValidationError("missing 'description'")
-    return True
-
-
 def response(code, body):
-    body = json.dumps(body)
     params = {
         'statusCode': code,
-        'body': body,
+        'body': json.dumps(body),
         'headers': {'content': 'application/json'},
     }
     return params
@@ -65,24 +51,14 @@ def response(code, body):
 def error(code, message=''):
     params = {
         'statusCode': code,
-        'body': {'error': message},
+        'body': json.dumps({'error': message}),
         'headers': {'content': 'application/json'},
     }
     return params
 
 
 def create_announcement(event, context):
-
-    try:
-        body = json.loads(event['body'])
-    except (ValueError, TypeError) as e:
-        log.error(str(e))
-        return error(400, 'Request is missing or is not json serializable')
-    try:
-        validate_fields(body)
-    except ValidationError as e:
-        log.error(str(e), exc_info=1)
-        return error(400, str(e))
+    body = json.loads(event['body'])
     date_str = body.get('date', None)
     if date_str is None:
         creation_date = dt.now().isoformat()
@@ -92,7 +68,7 @@ def create_announcement(event, context):
         'id': f"{uuid4().hex}",
         'title': body['title'],
         'date': creation_date,
-        'description': body['description']
+        'description': body.get('description', '')
     }
     db = Database()
     db.put_item(item)
@@ -103,5 +79,6 @@ def list_announcements(event, context):
     db = Database()
     items = db.list_items()
     return response(200, items)
+
 
 

@@ -1,0 +1,104 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: >
+  announcement
+
+  Sample SAM Template for announcement
+
+Globals:
+  Function:
+    Timeout: 3
+
+Parameters:
+  Stage:
+    Type: String
+    Default: v1
+
+Resources:
+  RestApi:
+    Type: AWS::Serverless::Api
+    Properties:
+      StageName: !Ref Stage
+      DefinitionBody:
+        Fn::Transform:
+          Name: AWS::Include
+          Parameters:
+            Location: swagger.yaml
+      Models:
+        CreateAnnouncement:
+          $schema: "http://json-schema.org/draft-04/hyper-schema#"
+          type: object
+          required:
+            - title
+          additionalProperties: false
+          properties:
+            title:
+              type: string
+              minLength: 1
+              maxLength: 200
+            date:
+              type: string
+              format: date-time
+            description:
+              type: string
+              maxLength: 2000
+
+  RequestValidator:
+    Type: AWS::ApiGateway::RequestValidator
+    Properties:
+      Name: AnnouncementValidator
+      RestApiId: !Ref RestApi
+      ValidateRequestBody: true
+
+  CreateAnnouncement:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: api/
+      Handler: app.create_announcement
+      Runtime: python3.6
+      Events:
+        CreateAnnouncement:
+          Type: Api
+          Properties:
+            Path: /announcement
+            Method: post
+            RestApiId: !Ref RestApi
+            RequestModel:
+              Model: CreateAnnouncement
+              Required: true
+      Policies:
+        DynamoDBCrudPolicy:
+          TableName: !Ref AnnouncementsTable
+      Environment:
+        Variables:
+          ANNOUNCEMENT_TABLE_NAME: !Ref AnnouncementsTable
+
+  ListAnnouncements:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: api/
+      Handler: app.list_announcements
+      Runtime: python3.6
+      Events:
+        ListAnnouncements:
+          Type: Api
+          Properties:
+            Path: /announcement
+            Method: get
+            RestApiId: !Ref RestApi
+      Policies:
+        DynamoDBReadPolicy:
+          TableName: !Ref AnnouncementsTable
+      Environment:
+        Variables:
+          ANNOUNCEMENT_TABLE_NAME: !Ref AnnouncementsTable
+
+  AnnouncementsTable:
+    Type: AWS::Serverless::SimpleTable
+    Properties:
+      TableName: announcement-table
+
+Outputs:
+  AnnouncementApi:
+    Description: "API Gateway endpoint URL for Prod stage for Announcement function"
+    Value: !Sub "https://${RestApi}.execute-api.${AWS::Region}.amazonaws.com/${Stage}/announcement/"

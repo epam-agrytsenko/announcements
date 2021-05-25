@@ -11,7 +11,7 @@ CF_STACK_NAME='announcement-app'
 aws s3 mb s3://${S3_BUCKET_NAME}
 
 aws cloudformation package \
-    --template-file announcement_app.yaml \
+    --template-file template.yaml \
     --s3-bucket ${S3_BUCKET_NAME} \
     --output-template-file processed_template.yaml
 

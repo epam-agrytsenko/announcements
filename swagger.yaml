@@ -2,11 +2,12 @@ openapi: "3.0.0"
 info:
   version: 1.0.0
   title: Swagger announcement
+
 paths:
   /announcement:
     get:
-      summary: List all available announcements
-      description: Returns list of tasks
+      summary: List all announcements
+      description: Returns a list of created announcements
       responses:
         '200':
           description: announcements response
@@ -15,10 +16,10 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: '#/components/schemas/AnnouncementResponse'
+                  $ref: '#/components/schemas/Announcement'
       x-amazon-apigateway-integration:
         uri:
-          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ListAnnouncementsFunction.Arn}/invocations
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${ListAnnouncements.Arn}/invocations
         responses:
           default:
             statusCode: "200"
@@ -33,7 +34,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
     post:
-      description: Creates a new Announcement
+      description: Creates a new Announcement. Duplicates are allowed
       operationId: addAnnouncement
       requestBody:
         description: Announcement to add
@@ -41,14 +42,14 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CreateAnnouncement'
+              $ref: '#/components/schemas/NewAnnouncement'
       responses:
         '201':
           description: announcement response
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AnnouncementResponse'
+                $ref: '#/components/schemas/Announcement'
         default:
           description: unexpected error
           content:
@@ -57,7 +58,7 @@ paths:
                 $ref: '#/components/schemas/Error'
       x-amazon-apigateway-integration:
         uri:
-          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateAnnouncementFunction.Arn}/invocations
+          Fn::Sub: arn:aws:apigateway:${AWS::Region}:lambda:path/2015-03-31/functions/${CreateAnnouncement.Arn}/invocations
         responses:
           default:
             statusCode: "201"
@@ -68,7 +69,7 @@ paths:
 
 components:
   schemas:
-    AnnouncementResponse:
+    Announcement:
       type: object
       required:
         - title
@@ -83,7 +84,7 @@ components:
         date:
           type: string
           format: date-time
-    CreateAnnouncement:
+    NewAnnouncement:
       type: object
       required:
         - title

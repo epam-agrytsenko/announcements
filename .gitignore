@@ -12,6 +12,8 @@ dist/
 .installed.cfg
 *.egg
 MANIFEST
+.aws-sam
+.idea
 
 # Unit test / coverage reports
 htmlcov/
